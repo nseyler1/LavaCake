@@ -203,6 +203,7 @@ namespace LavaCake {
 
       bool																m_cubemap = false;
 
+    public:
       void* m_mappedMemory = nullptr;
     };
 

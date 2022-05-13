@@ -67,6 +67,8 @@ namespace LavaCake {
         return vec2u({ m_width , m_height });
       }
 
+      const auto& getImages() const { return m_images;}
+
       ~FrameBuffer() {
         Device* d = Device::getDevice();
         VkDevice logical = d->getLogicalDevice();
