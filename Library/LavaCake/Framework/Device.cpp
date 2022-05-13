@@ -272,6 +272,9 @@ namespace LavaCake {
           VK_EXT_METAL_SURFACE_EXTENSION_NAME
 #endif
         );
+      } else {
+        instance_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
+        instance_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
       }
       if (!CreateVulkanInstance(instance_extensions, "LavaCake", m_instance)) {
         ErrorCheck::setError("Could not create the vulkan instance");
@@ -330,6 +333,14 @@ namespace LavaCake {
 
       if(!headless){
         device_extensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+      } else {
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+        device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+        device_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+#else
+        device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+        device_extensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME);
+#endif
       }
       std::vector<char const*> device_extensions_optional;
 
