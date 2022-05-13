@@ -10,12 +10,12 @@ namespace LavaCake {
 
     class Semaphore {
     public :
-      Semaphore() {
+      Semaphore(VkExportSemaphoreCreateInfo* export_semaphore_info = nullptr) {
         Device* d = Device::getDevice();
         VkDevice logical = d->getLogicalDevice();
         VkSemaphoreCreateInfo semaphore_create_info = {
           VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,    // VkStructureType            sType
-          nullptr,                                    // const void               * pNext
+          export_semaphore_info,                      // const void               * pNext
           0                                           // VkSemaphoreCreateFlags     flags
         };
 
@@ -50,6 +50,30 @@ namespace LavaCake {
         return m_semaphore;
       }
 
+      auto getExportHandle() const {
+        auto logical = Device::getDevice()->getLogicalDevice();
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+        VkSemaphoreGetWin32HandleInfoKHR semaphore_handle_info = {
+          .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
+          .semaphore = m_semaphore,
+          .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT
+        };
+
+        HANDLE handle;
+        vkGetSemaphoreWin32HandleKHR(logical, &semaphore_handle_info, &handle);
+#else
+        VkSemaphoreGetFdInfoKHR semaphore_fd_info = {
+          .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
+          .semaphore = m_semaphore,
+          .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT
+        };
+
+        int handle;
+        vkGetSemaphoreFdKHR(logical, &semaphore_fd_info, &handle);
+#endif
+        return handle;
+      }
+
 
       ~Semaphore(){
         Device* d = Device::getDevice();
@@ -62,6 +86,7 @@ namespace LavaCake {
 
     private :
       VkSemaphore m_semaphore = VK_NULL_HANDLE;
+
     };
 
 

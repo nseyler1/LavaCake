@@ -64,6 +64,7 @@ endif()
 
 
 set(LAVACAKE_WINDOW_MANAGER "GLFW" CACHE STRING "lib used by Lavacake for window management")
+set_property(CACHE LAVACAKE_WINDOW_MANAGER PROPERTY STRINGS GLFW headless custom)
 
 if(LAVACAKE_WINDOW_MANAGER STREQUAL "GLFW")
 	
@@ -71,7 +72,7 @@ if(LAVACAKE_WINDOW_MANAGER STREQUAL "GLFW")
 	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 	set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-	option(USE_SYSTEM_GLFW "\
+  option(LAVACAKE_USE_SYSTEM_GLFW "\
     	If not activated, use submodule for glfw, otherwise, use version provided by system.
     	" OFF)
 

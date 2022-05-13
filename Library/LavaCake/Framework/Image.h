@@ -120,6 +120,28 @@ namespace LavaCake {
        */
       const VkImage& getHandle() const;
 
+      auto getExportHandle() {
+        auto logical = Device::getDevice()->getLogicalDevice();
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+        VkMemoryGetWin32HandleKHR memory_handle_info = {
+          .sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
+          .memory = m_imageMemory,
+          .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR
+        }
+        HANDLE handle{nullptr}
+        vkGetMemoryWin32HandleKHR(logical, &memory_handle_info, &handle);
+#else
+        VkMemoryGetFdInfoKHR memory_fd_info = {
+          .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
+          .memory = m_imageMemory,
+          .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR
+        };
+        int handle = -1;
+        vkGetMemoryFdKHR(logical, &memory_fd_info, &handle);
+#endif
+        return handle;
+      }
+
       /**
        \brief Get the handle of the image memory
        \return VkDeviceMemory : the image memory of the image
