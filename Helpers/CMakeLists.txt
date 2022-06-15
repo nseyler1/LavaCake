@@ -6,6 +6,7 @@ set_property(GLOBAL PROPERTY HELPERS_PATH ${CMAKE_CURRENT_LIST_DIR})
 macro(clearShader)
 	set(INPUT_SHADER)
 	set(OUTPUT_SHADER)
+  set(LANGUAGE_SHADER)
 	set(SPV_VERSION)
 endmacro()
 
@@ -14,41 +15,53 @@ macro(addShader input output)
 	list(LENGTH variadic_args variadic_count)
 	set(INPUT_SHADER ${INPUT_SHADER} ${input})
 	set(OUTPUT_SHADER ${OUTPUT_SHADER} ${output})
+
 	
-	if (${variadic_count} GREATER 0)
-		list(GET variadic_args 0 version)
-	else()
+  if (${variadic_count} GREATER 1)
+    list(GET variadic_args 0 lang)
+    list(GET variadic_args 1 version)
+  elseif( ${variadic_count} GREATER 0)
+    list(GET variadic_args 0 lang)
+    set(version spv1.3)
+  else()
+    set(lang glsl)
 		set(version spv1.3)
 	endif()
 
+  set(LANGUAGE_SHADER ${LANGUAGE_SHADER} ${lang})
 	set(SPV_VERSION ${SPV_VERSION} ${version})
-	message(STATUS "Added new rule to convert ${input} to ${output} using ${version}")
+
+  message(STATUS "Added new rule to convert ${input} to ${output} using ${version} with ${lang} as shader language.")
 endmacro()
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 
 macro(AutoSPIRV TARGET_NAME)
 
-	list(LENGTH INPUT_SHADER len1)
-	math(EXPR length "${len1} - 1")
+  list(LENGTH INPUT_SHADER length)
 	if(length GREATER_EQUAL 1)
+    math(EXPR length "${length} - 1")
 		set(SHADERS_DEP)
-		foreach(val RANGE ${length})
-			list(GET INPUT_SHADER ${val} val1)
-			list(GET OUTPUT_SHADER ${val} val2)
-			list(GET SPV_VERSION ${val} val3)
-			get_property(path GLOBAL PROPERTY HELPERS_PATH)
+    foreach(val RANGE ${length})
+      list(GET LANGUAGE_SHADER ${val} val1)
+      list(GET INPUT_SHADER ${val} val2)
+      list(GET OUTPUT_SHADER ${val} val3)
+      list(GET SPV_VERSION ${val} val4)
+      get_property(path GLOBAL PROPERTY HELPERS_PATH)
 
-			set(OUTPUT_FILE ${val2})
+      set(OUTPUT_FILE ${val3})
 
-			
-			set(COMMANDS glslc ${val1} -g -o  ${val2} --target-spv=${val3})
-			
+
+      if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(COMMANDS glslc -x ${val1} ${val2} -g -o  ${val3})
+      else()
+        set(COMMANDS glslc -x ${val1} ${val2} -o  ${val3})
+      endif()
 			
 			add_custom_command(
 				OUTPUT ${OUTPUT_FILE}
 				COMMAND ${COMMANDS}
-				DEPENDS ${val1}
+        DEPENDS ${val2}
 				COMMENT "AutoSPIRV ${COMMANDS}"
 				VERBATIM
 			)
