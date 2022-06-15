@@ -97,7 +97,7 @@ namespace LavaCake {
       /*
       * Draw the render pass using a specific command buffer into a framebuffer
       */
-      void draw(CommandBuffer& commandBuffer, FrameBuffer& frameBuffer, vec2u viewportMin, vec2u viewportMax, std::vector<VkClearValue> const& clear_values = { { 1.0f, 0 } });
+      void draw(CommandBuffer& commandBuffer, FrameBuffer& frameBuffer, vec2u viewportMin, vec2u viewportMax, std::vector<VkClearValue> const& clear_values = {{ .depthStencil =  {1.0f, 0} }});
 
       /*
       *	return the handle of the render pass
@@ -105,7 +105,7 @@ namespace LavaCake {
       const VkRenderPass& getHandle() const;
 
 
-      void prepareOutputFrameBuffer(const Queue& queue, CommandBuffer& commandBuffer, FrameBuffer& FrameBuffer);
+      void prepareOutputFrameBuffer(const Queue& queue, CommandBuffer& commandBuffer, FrameBuffer& FrameBuffer, bool interop = false);
 
 
       void setSwapChainImage(FrameBuffer& FrameBuffer, const SwapChainImage& image);

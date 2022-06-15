@@ -98,7 +98,7 @@ namespace LavaCake {
         m_format = format;
       }
 
-      Mesh(std::vector<float>& vertices, vertexFormat format) {
+      Mesh(const std::vector<float>& vertices, vertexFormat format) {
         m_vertexSize = format.size();
         m_format = format;
         m_vertices = vertices;

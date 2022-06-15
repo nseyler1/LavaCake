@@ -47,8 +47,8 @@ namespace LavaCake {
     }
 
 
-    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth, VkFormat f) {
-      Image image(width, height, depth, f, VK_IMAGE_ASPECT_COLOR_BIT, (VkImageUsageFlagBits)(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT));
+    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth, VkFormat f, bool interop) {
+      Image image(width, height, depth, f, VK_IMAGE_ASPECT_COLOR_BIT, (VkImageUsageFlagBits)(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, false, interop);
       cmdBuff.beginRecord();
 
       VkImageSubresourceRange subresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
@@ -176,7 +176,7 @@ namespace LavaCake {
       cmdBuff.resetFence();
 
       return image;
-    };
+    }
 
 
 
@@ -184,10 +184,39 @@ namespace LavaCake {
     //																																				Frame Buffer																																		//
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    FrameBuffer::FrameBuffer(uint32_t width, uint32_t height) {
-      m_width = width;
-      m_height = height;
-    };
+    FrameBuffer::FrameBuffer(uint32_t width, uint32_t height)
+      : m_width(width), m_height(height)
+    {}
+
+    FrameBuffer::FrameBuffer(FrameBuffer&& fb) noexcept
+      : m_width(fb.m_width),
+        m_height(fb.m_height),
+
+        m_frameBuffer(std::exchange(fb.m_frameBuffer, m_frameBuffer)),
+        m_sampler(std::exchange(fb.m_sampler, m_sampler)),
+        m_imageMemory(std::exchange(fb.m_imageMemory, m_imageMemory)),
+
+        m_images(std::exchange(fb.m_images, m_images)),
+
+        m_swapChainImageIndex  (fb.m_swapChainImageIndex)
+    {}
+
+    FrameBuffer& FrameBuffer::operator=(FrameBuffer&& fb) noexcept {
+      if(this != &fb) {
+        m_width  = fb.m_width;
+        m_height = fb.m_height;
+
+        m_frameBuffer = std::exchange(fb.m_frameBuffer, m_frameBuffer);
+        m_sampler     = std::exchange(fb.m_sampler, m_sampler);
+        m_imageMemory = std::exchange(fb.m_imageMemory, m_imageMemory);
+
+        m_images = std::exchange(fb.m_images, m_images);
+
+        m_swapChainImageIndex = fb.m_swapChainImageIndex;
+      }
+
+      return *this;
+    }
 
     const VkImageView& FrameBuffer::getImageView(uint8_t i) const {
       return m_images[i]->getImageView();

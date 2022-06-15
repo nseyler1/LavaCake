@@ -277,7 +277,7 @@ namespace LavaCake {
       return m_renderPass;
     }
 
-    void RenderPass::prepareOutputFrameBuffer(const Queue& queue, CommandBuffer& commandBuffer, FrameBuffer& frameBuffer) {
+    void RenderPass::prepareOutputFrameBuffer(const Queue& queue, CommandBuffer& commandBuffer, FrameBuffer& frameBuffer, bool interop) {
       Device* d = Device::getDevice();
       VkDevice logical = d->getLogicalDevice();
 
@@ -373,7 +373,7 @@ namespace LavaCake {
         }
 
 
-        frameBuffer.m_images[i] = std::make_shared< Image >((uint32_t)frameBuffer.m_width, (uint32_t)frameBuffer.m_height, 1, format, aspect, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, false);
+        frameBuffer.m_images[i] = std::make_shared< Image >((uint32_t)frameBuffer.m_width, (uint32_t)frameBuffer.m_height, 1, format, aspect, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, false, interop);
 
         VkImageSubresourceRange subresourceRange{ (VkImageAspectFlags)aspect, 0, 1, 0, 1 };
 

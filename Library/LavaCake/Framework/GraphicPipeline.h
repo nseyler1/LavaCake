@@ -35,6 +35,9 @@ namespace LavaCake {
       */
       GraphicPipeline(vec3f viewportMin, vec3f viewportMax, vec2f scissorMin, vec2f scissorMax);
 
+      void setViewports(vec3f viewportMin, vec3f viewportMax);
+      void setScissors(vec2f scissorMin, vec2f scissorMax);
+
       /**
        \brief Set the vertex shader module for the pipeline
        \param module a pointer to a vertex shader module

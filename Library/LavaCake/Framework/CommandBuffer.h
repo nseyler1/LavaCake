@@ -60,7 +60,7 @@ namespace LavaCake {
         };
 
         HANDLE handle;
-        vkGetSemaphoreWin32HandleKHR(logical, &semaphore_handle_info, &handle);
+        auto result = vkGetSemaphoreWin32HandleKHR(logical, &semaphore_handle_info, &handle);
 #else
         VkSemaphoreGetFdInfoKHR semaphore_fd_info = {
           .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
@@ -69,8 +69,11 @@ namespace LavaCake {
         };
 
         int handle;
-        vkGetSemaphoreFdKHR(logical, &semaphore_fd_info, &handle);
+        auto result = vkGetSemaphoreFdKHR(logical, &semaphore_fd_info, &handle);
 #endif
+        if (result != VK_SUCCESS) {
+          ErrorCheck::setError("Failed to get the Vulkan semaphore handle (to export).");
+        }
         return handle;
       }
 
@@ -173,11 +176,11 @@ namespace LavaCake {
       /**
        \brief Put the command buffer in a recording state
       */
-      void beginRecord() {
+      void beginRecord(VkCommandBufferUsageFlags bufferUsage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) {
         VkCommandBufferBeginInfo command_buffer_begin_info = {
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,    // VkStructureType                        sType
         nullptr,                                        // const void                           * pNext
-        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,    // VkCommandBufferUsageFlags              flags
+        bufferUsage,                                    // VkCommandBufferUsageFlags              flags
         nullptr                                         // const VkCommandBufferInheritanceInfo * pInheritanceInfo
         };
 

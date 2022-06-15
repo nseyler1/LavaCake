@@ -26,6 +26,12 @@ namespace LavaCake {
       */
       FrameBuffer(uint32_t width, uint32_t height);
 
+      FrameBuffer(const FrameBuffer&) = delete;
+      FrameBuffer& operator=(const FrameBuffer&) = delete;
+
+      FrameBuffer(FrameBuffer&& fb) noexcept;
+      FrameBuffer& operator=(FrameBuffer&& fb) noexcept;
+
       /**
         \brief get the image layout of one layer of the FrameBuffer
         \param i: the index of the layer
@@ -46,6 +52,8 @@ namespace LavaCake {
         \brief a VkImageView
       */
       const VkImageView& getImageView(uint8_t i) const;
+
+      const auto& getImages() const { return m_images;}
 
       /**
         \brief get the number of image view in the Framebuffer
@@ -143,7 +151,7 @@ namespace LavaCake {
       \param depth: the depth of the image
       \param format: the format of the image
     */
-    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth = 1, VkFormat f = VK_FORMAT_R8G8B8A8_UNORM);
+    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth = 1, VkFormat f = VK_FORMAT_R8G8B8A8_UNORM, bool = false);
 
     /**
       \brief create an image specialized to be a texture buffer.

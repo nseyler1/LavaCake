@@ -38,38 +38,55 @@ namespace LavaCake {
         VkImageAspectFlagBits aspect,
         VkImageUsageFlags usage,
         VkMemoryPropertyFlagBits memPropertyFlag = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        bool cubemap = false);
-
+        bool cubemap = false,
+        bool interop = false);
 
       Image(const Image&) = delete;
-
       Image& operator=(const Image&) = delete;
 
-      Image(Image&& i) noexcept {
+      Image(Image&& i) noexcept
+          : m_width(i.m_width),
+            m_height(i.m_height),
+            m_depth(i.m_depth),
+            m_format(i.m_format),
 
-        m_width = i.m_width;
-        m_height = i.m_height;
-        m_depth = i.m_depth;
-        m_format = i.m_format;
+            m_layout( i.m_layout),
+            m_stage(i.m_stage),
+            m_aspect(i.m_aspect),
 
-        m_layout = i.m_layout;
-        m_stage = i.m_stage;
-        m_aspect = i.m_aspect;
+            m_image(std::exchange(i.m_image, m_image)),
+            m_imageMemory(std::exchange(i.m_imageMemory, m_imageMemory)),
+            m_imageView(std::exchange(i.m_imageView, m_imageView)),
+            m_sampler(std::exchange(i.m_sampler, m_sampler)),
 
-        m_image = i.m_image;
-        m_imageMemory = i.m_imageMemory;
-        m_imageView = i.m_imageView;
-        m_sampler = i.m_sampler;
-        m_cubemap = i.m_cubemap;
-        m_mappedMemory = i.m_mappedMemory;
+            m_cubemap(i.m_cubemap),
 
-        i.m_image = VK_NULL_HANDLE;
-        i.m_imageMemory = VK_NULL_HANDLE;
-        i.m_imageView = VK_NULL_HANDLE;
-        i.m_sampler = VK_NULL_HANDLE;
-        i.m_mappedMemory = nullptr;
+            m_mappedMemory(i.m_mappedMemory)
+      {};
 
-      };
+      Image& operator=(Image&& i) noexcept {
+        if (this != &i) {
+          m_width  = i.m_width;
+          m_height = i.m_height;
+          m_depth  = i.m_depth;
+          m_format = i.m_format;
+
+          m_layout = i.m_layout;
+          m_stage  = i.m_stage;
+          m_aspect = i.m_aspect;
+
+          m_image       = std::exchange(i.m_image, m_image);
+          m_imageMemory = std::exchange(i.m_imageMemory, m_imageMemory);
+          m_imageView   = std::exchange(i.m_imageView, m_imageView);
+          m_sampler     = std::exchange(i.m_sampler, m_sampler);
+
+          m_cubemap = i.m_cubemap;
+
+          m_mappedMemory = i.m_mappedMemory;
+        }
+
+        return *this;
+      }
 
 
       void createSampler();
@@ -129,7 +146,7 @@ namespace LavaCake {
           .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR
         }
         HANDLE handle{nullptr}
-        vkGetMemoryWin32HandleKHR(logical, &memory_handle_info, &handle);
+        auto result = vkGetMemoryWin32HandleKHR(logical, &memory_handle_info, &handle);
 #else
         VkMemoryGetFdInfoKHR memory_fd_info = {
           .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
@@ -137,8 +154,11 @@ namespace LavaCake {
           .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR
         };
         int handle = -1;
-        vkGetMemoryFdKHR(logical, &memory_fd_info, &handle);
+        auto result = vkGetMemoryFdKHR(logical, &memory_fd_info, &handle);
 #endif
+        if(result != VK_SUCCESS) {
+          ErrorCheck::setError("Failed to get the vulkan memory handle (to export).");
+        }
         return handle;
       }
 
@@ -185,6 +205,8 @@ namespace LavaCake {
        \return the VkImageLayout of the image
        */
       VkImageLayout getLayout() const;
+
+      VkFormat getFormat() const;
 
 
       const VkSampler& getSampler() const;

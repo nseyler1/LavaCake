@@ -3,47 +3,66 @@
 namespace LavaCake {
   namespace Framework {
 
-    GraphicPipeline::GraphicPipeline(vec3f viewportMin, vec3f viewportMax, vec2f scisorMin, vec2f scisorMax) {
-      //viewport
+    GraphicPipeline::GraphicPipeline(vec3f viewportMin, vec3f viewportMax, vec2f scissorMin, vec2f scissorMax) {
+      //viewports
+      setViewports(viewportMin, viewportMax);
+
+      //scissors
+      setScissors(scissorMin, scissorMax);
+
+      m_viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+      m_viewportInfo.pNext = nullptr;
+      m_viewportInfo.flags = 0;
+      m_viewportInfo.viewportCount = 1;
+      m_viewportInfo.scissorCount  = 1;
+
+//      m_viewportInfo = {
+//        VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,    // VkStructureType                      sType
+//        nullptr,                                                  // const void                         * pNext
+//        0,                                                        // VkPipelineViewportStateCreateFlags   flags
+//        1,																												// uint32_t                             viewportCount
+//        m_viewports.data(),																				// const VkViewport                   * pViewports
+//        1,																												// uint32_t                             scissorCount
+//        m_scissors.data()																					// const VkRect2D                     * pScissors
+//      };
+
+    }
+
+    void GraphicPipeline::setViewports(vec3f viewportMin, vec3f viewportMax) {
       m_viewports = {
           {                     // std::vector<VkViewport>   Viewports
-            {
-              viewportMin[0],																// float          x
-              viewportMin[1],																// float          y
-              viewportMax[0] - viewportMin[0],							// float          width
-              viewportMax[1] - viewportMin[1],							// float          height
-              viewportMin[2],																// float          minDepth
-              viewportMax[2]																// float          maxDepth
-            }
+              {
+                  viewportMin[0],																// float          x
+                  viewportMin[1],																// float          y
+                  viewportMax[0] - viewportMin[0],							// float          width
+                  viewportMax[1] - viewportMin[1],							// float          height
+                  viewportMin[2],																// float          minDepth
+                  viewportMax[2]																// float          maxDepth
+              }
           },
       };
 
+      m_viewportInfo.pViewports = m_viewports.data();
+    }
+
+    void GraphicPipeline::setScissors(vec2f scissorMin, vec2f scissorMax) {
       m_scissors = {
           {                     // std::vector<VkRect2D>     Scissors
-            {
-              {                   // VkOffset2D     offset
-                int32_t(scisorMin[0]),															 // int32_t        x
-                int32_t(scisorMin[1])																 // int32_t        y
-              },
-              {                   // VkExtent2D     extent
-                uint32_t(scisorMax[0] - scisorMin[0]),                // uint32_t       width
-                uint32_t(scisorMax[1] - scisorMin[1])								  // uint32_t       height
+              {
+                  {                   // VkOffset2D     offset
+                      int32_t(scissorMin[0]),															 // int32_t        x
+                      int32_t(scissorMin[1])																 // int32_t        y
+                  },
+                  {                   // VkExtent2D     extent
+                      uint32_t(scissorMax[0] - scissorMin[0]),                // uint32_t       width
+                      uint32_t(scissorMax[1] - scissorMin[1])								  // uint32_t       height
+                  }
               }
-            }
           }
       };
 
-      m_viewportInfo = {
-        VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,    // VkStructureType                      sType
-        nullptr,                                                  // const void                         * pNext
-        0,                                                        // VkPipelineViewportStateCreateFlags   flags
-        1,																												// uint32_t                             viewportCount
-        m_viewports.data(),																				// const VkViewport                   * pViewports
-        1,																												// uint32_t                             scissorCount
-        m_scissors.data()																					// const VkRect2D                     * pScissors
-      };
-
-    };
+      m_viewportInfo.pScissors = m_scissors.data();
+    }
 
     void GraphicPipeline::setVertexModule(const VertexShaderModule& module) {
       if (m_type == pipelineType::Undefined || m_type == pipelineType::Graphic) {
