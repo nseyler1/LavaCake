@@ -5,13 +5,17 @@ namespace LavaCake {
 
 
     Image::Image(uint32_t width, uint32_t height, uint32_t depth, VkFormat f, VkImageAspectFlagBits aspect, VkImageUsageFlags usage,
-      VkMemoryPropertyFlagBits memPropertyFlag, bool cubemap, bool interop) {
+               VkMemoryPropertyFlagBits memPropertyFlag, bool cubemap, const std::vector<VkExternalMemoryHandleTypeFlagBits>& handlesType) {
       m_width = width;
       m_height = height;
       m_depth = depth;
       m_format = f;
       m_aspect = aspect;
       m_cubemap = cubemap;
+      m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+      m_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+      bool is_external = !handlesType.empty();
 
       Framework::Device* d = LavaCake::Framework::Device::getDevice();
       VkDevice logical = d->getLogicalDevice();
@@ -24,18 +28,10 @@ namespace LavaCake {
       if (m_depth > 1) { type = VK_IMAGE_TYPE_3D; view = VK_IMAGE_VIEW_TYPE_3D; }
       if (m_cubemap) { type = VK_IMAGE_TYPE_2D; view = VK_IMAGE_VIEW_TYPE_CUBE; }
 
-      VkExternalMemoryImageCreateInfo external_image_create_info = {
-        VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
-        nullptr,
-        static_cast<VkExternalMemoryHandleTypeFlags>(
-          static_cast<uint32_t>(VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR) |
-          static_cast<uint32_t>(VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR))
-      };
-
       // image creation
       VkImageCreateInfo image_create_info = {
         VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,                // VkStructureType          sType
-        interop ? &external_image_create_info : nullptr,    // const void             * pNext
+        nullptr,                                            // const void             * pNext
         cubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0u, // VkImageCreateFlags       flags
         type,                                               // VkImageType              imageType
         m_format,                                           // VkFormat                 format
@@ -44,42 +40,120 @@ namespace LavaCake {
         cubemap ? (uint32_t)6 : (uint32_t)1,								// uint32_t                 arrayLayers
         VK_SAMPLE_COUNT_1_BIT,                              // VkSampleCountFlagBits    samples
         VK_IMAGE_TILING_OPTIMAL,                            // VkImageTiling            tiling
-        usage,																							// VkImageUsageFlags        usage
+        usage,											                        // VkImageUsageFlags        usage
         VK_SHARING_MODE_EXCLUSIVE,                          // VkSharingMode            sharingMode
         0,                                                  // uint32_t                 queueFamilyIndexCount
         nullptr,                                            // const uint32_t         * pQueueFamilyIndices
-        VK_IMAGE_LAYOUT_UNDEFINED                           // VkImageLayout            initialLayout
+        m_layout                                            // VkImageLayout            initialLayout
       };
+
+      VkExternalMemoryImageCreateInfo external_image_create_info = {
+        VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
+        nullptr,
+        0 // VkExternalMemoryHandleTypeFlags
+      };
+
+      if(is_external) {
+        image_create_info.pNext = &external_image_create_info;
+
+        VkPhysicalDeviceExternalImageFormatInfo device_external_image_format_info = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
+          nullptr,
+          {}
+        };
+
+        VkPhysicalDeviceImageFormatInfo2 device_image_format_info = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+          &device_external_image_format_info,
+          image_create_info.format,
+          image_create_info.imageType,
+          image_create_info.tiling,
+          image_create_info.usage,
+          image_create_info.flags
+        };
+
+        VkExternalImageFormatProperties external_image_format_properties = {
+          VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES,
+          nullptr,
+          {}
+        };
+
+        VkImageFormatProperties2 image_format_properties = {
+          VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
+          &external_image_format_properties,
+          {}
+        };
+
+        for(const auto handle_type : handlesType) {
+          device_external_image_format_info.handleType = handle_type;
+
+          vkGetPhysicalDeviceImageFormatProperties2(physical,
+                                                    &device_image_format_info,
+                                                    &image_format_properties);
+
+          auto compatible_handle_types = external_image_format_properties.externalMemoryProperties.compatibleHandleTypes;
+          if(handle_type & compatible_handle_types) {
+            external_image_create_info.handleTypes =
+                static_cast<VkExternalMemoryHandleTypeFlags>(
+                static_cast<uint32_t>(external_image_create_info.handleTypes) |
+                static_cast<uint32_t>(handle_type));
+          }
+        }
+
+      }
 
       VkResult result = vkCreateImage(logical, &image_create_info, nullptr, &m_image);
       if (VK_SUCCESS != result) {
         ErrorCheck::setError("Could not create an image.");
       }
 
-
       // memory allocation
       VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
       vkGetPhysicalDeviceMemoryProperties(physical, &physical_device_memory_properties);
 
-      VkMemoryRequirements memory_requirements;
-      vkGetImageMemoryRequirements(logical, m_image, &memory_requirements);
+      VkMemoryDedicatedRequirements memory_dedicated_requirements = {
+        VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS,
+        nullptr,
+        VK_FALSE,
+        VK_FALSE
+      };
+
+      VkImageMemoryRequirementsInfo2 image_memory_requirements = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,
+        nullptr,
+        m_image
+      };
+
+      VkMemoryRequirements2 memory_requirements = {
+        VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
+        &memory_dedicated_requirements,
+        {}
+      };
+      vkGetImageMemoryRequirements2(logical, &image_memory_requirements, &memory_requirements);
 
       m_imageMemory = VK_NULL_HANDLE;
-      for (uint32_t type = 0; type < physical_device_memory_properties.memoryTypeCount; ++type) {
-        if ((memory_requirements.memoryTypeBits & (1 << type)) &&
-          ((physical_device_memory_properties.memoryTypes[type].propertyFlags & memPropertyFlag) == memPropertyFlag)) {
+      for (uint32_t memory_type = 0; memory_type < physical_device_memory_properties.memoryTypeCount; ++memory_type) {
+        if ((memory_requirements.memoryRequirements.memoryTypeBits & (1 << memory_type)) &&
+          ((physical_device_memory_properties.memoryTypes[memory_type].propertyFlags & memPropertyFlag) == memPropertyFlag)) {
+
+          VkMemoryDedicatedAllocateInfo memory_dedicated_alloc_info = {
+            VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+            nullptr,
+            m_image,
+            VK_NULL_HANDLE
+          };
 
           VkExportMemoryAllocateInfo export_memory_info = {
             VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-            nullptr,
+            memory_dedicated_requirements.requiresDedicatedAllocation? &memory_dedicated_alloc_info : nullptr,
             external_image_create_info.handleTypes
           };
 
           VkMemoryAllocateInfo image_memory_allocate_info = {
-            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,    // VkStructureType    sType
-            interop ? &export_memory_info : nullptr,   // const void       * pNext
-            memory_requirements.size,                  // VkDeviceSize       allocationSize
-            type                                       // uint32_t           memoryTypeIndex
+            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,      // VkStructureType    sType
+            is_external ? &export_memory_info : nullptr, // const void       * pNext
+            memory_requirements.memoryRequirements.size, // VkDeviceSize       allocationSize
+            memory_type                                  // uint32_t           memoryTypeIndex
           };
 
           VkResult result = vkAllocateMemory(logical, &image_memory_allocate_info, nullptr, &m_imageMemory);
@@ -128,10 +202,6 @@ namespace LavaCake {
       if (VK_SUCCESS != result) {
         ErrorCheck::setError("Can't create Image View");
       }
-
-
-      m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-      m_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     }
 

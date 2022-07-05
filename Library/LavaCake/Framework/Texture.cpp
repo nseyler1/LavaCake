@@ -47,8 +47,8 @@ namespace LavaCake {
     }
 
 
-    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth, VkFormat f, bool interop) {
-      Image image(width, height, depth, f, VK_IMAGE_ASPECT_COLOR_BIT, (VkImageUsageFlagBits)(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, false, interop);
+    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth, VkFormat f, VkImageUsageFlagBits usage,  const std::vector<VkExternalMemoryHandleTypeFlagBits>& handlesType) {
+      Image image(width, height, depth, f, VK_IMAGE_ASPECT_COLOR_BIT, (VkImageUsageFlagBits)(VK_IMAGE_USAGE_STORAGE_BIT | usage), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, false, handlesType);
       cmdBuff.beginRecord();
 
       VkImageSubresourceRange subresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };

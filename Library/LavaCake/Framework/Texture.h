@@ -151,7 +151,7 @@ namespace LavaCake {
       \param depth: the depth of the image
       \param format: the format of the image
     */
-    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth = 1, VkFormat f = VK_FORMAT_R8G8B8A8_UNORM, bool = false);
+    Image createStorageImage(const Queue& queue, CommandBuffer& cmdBuff, int width, int height, int depth = 1, VkFormat f = VK_FORMAT_R8G8B8A8_UNORM, VkImageUsageFlagBits usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT, const std::vector<VkExternalMemoryHandleTypeFlagBits>& handlesType = {});
 
     /**
       \brief create an image specialized to be a texture buffer.

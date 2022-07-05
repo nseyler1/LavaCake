@@ -105,7 +105,7 @@ namespace LavaCake {
       const VkRenderPass& getHandle() const;
 
 
-      void prepareOutputFrameBuffer(const Queue& queue, CommandBuffer& commandBuffer, FrameBuffer& FrameBuffer, bool interop = false);
+      void prepareOutputFrameBuffer(const Queue& queue, CommandBuffer& commandBuffer, FrameBuffer& FrameBuffer, const std::vector<VkExternalMemoryHandleTypeFlagBits>& handlesType = {});
 
 
       void setSwapChainImage(FrameBuffer& FrameBuffer, const SwapChainImage& image);

@@ -39,7 +39,7 @@ namespace LavaCake {
         VkImageUsageFlags usage,
         VkMemoryPropertyFlagBits memPropertyFlag = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         bool cubemap = false,
-        bool interop = false);
+        const std::vector<VkExternalMemoryHandleTypeFlagBits>& handlesType = {});
 
       Image(const Image&) = delete;
       Image& operator=(const Image&) = delete;
