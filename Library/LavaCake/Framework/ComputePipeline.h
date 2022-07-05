@@ -40,9 +40,7 @@ namespace LavaCake {
       */
       void compute(CommandBuffer& cmdBuff, uint32_t dimX, uint32_t dimY, uint32_t dimZ);
 
-      ~ComputePipeline() {
-
-      }
+      ~ComputePipeline() override = default;
     private:
 
       shaderStageParameters																	m_computeModule;

@@ -6,16 +6,16 @@ namespace LavaCake {
   namespace Framework {
 
 #ifdef _WIN32
-    const std::vector<const char*> validationLayers = {
+    const std::array<const char*, 1> validationLayers = {
       "VK_LAYER_KHRONOS_validation"
     };
 #else
-    const std::vector<const char*> validationLayers = {
+    const std::array<const char*, 1> validationLayers = {
       "VK_LAYER_KHRONOS_validation"
     };
 #endif
 
-    const std::vector<const char*> raytracingExtension = {
+    const std::array<const char*, 8> raytracingExtension = {
       VK_KHR_SPIRV_1_4_EXTENSION_NAME,
       VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
       VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
@@ -26,7 +26,7 @@ namespace LavaCake {
       VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
     };
 
-    const std::vector<const char*> meshShaderExtension = {
+    const std::array<const char*, 1> meshShaderExtension = {
       VK_NV_MESH_SHADER_EXTENSION_NAME
     };
 
@@ -174,7 +174,7 @@ namespace LavaCake {
 
 
 
-    Device* Device::m_device;
+    Device* Device::m_device = nullptr;
 
     const VkPhysicalDevice& Device::getPhysicalDevice() const {
       return m_physical;
@@ -689,8 +689,15 @@ namespace LavaCake {
       }
 
       //release logical device
-      vkDestroyDevice(m_logical, nullptr);
+      if (VK_NULL_HANDLE != m_logical) {
+        vkDestroyDevice(m_logical, nullptr);
+        m_logical = VK_NULL_HANDLE;
+      }
 
+      if (VK_NULL_HANDLE != m_instance) {
+        vkDestroyInstance(m_instance, nullptr);
+        m_instance = VK_NULL_HANDLE;
+      }
 
       //release Vulkan lib
       if (nullptr != m_vulkanLibrary) {
@@ -705,6 +712,7 @@ namespace LavaCake {
       }
 
       delete m_device;
+      m_device = nullptr;
     }
   }
 }

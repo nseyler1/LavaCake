@@ -10,12 +10,12 @@ namespace LavaCake {
 
     class Semaphore {
     public :
-      Semaphore(VkExportSemaphoreCreateInfo* export_semaphore_info = nullptr) {
+      Semaphore(const void* pNext = nullptr) {
         Device* d = Device::getDevice();
         VkDevice logical = d->getLogicalDevice();
         VkSemaphoreCreateInfo semaphore_create_info = {
           VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,    // VkStructureType            sType
-          export_semaphore_info,                      // const void               * pNext
+          pNext,                                      // const void               * pNext
           0                                           // VkSemaphoreCreateFlags     flags
         };
 
